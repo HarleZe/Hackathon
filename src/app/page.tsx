@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Navigation, RotateCcw, Hand, ArrowRight, Info, RefreshCw } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
+import { Sparkles, Navigation, RotateCcw, Hand, ArrowRight, Info, RefreshCw, User, LogOut } from "lucide-react";
 import FlashSelector from "@/components/MichelinGO/FlashSelector";
 import SwipeDeck from "@/components/MichelinGO/SwipeDeck";
 import RouletteSelector from "@/components/MichelinGO/RouletteSelector";
@@ -17,13 +19,8 @@ import { cn } from "@/lib/utils";
 type View = "portal" | "onboarding" | "swipe" | "roulette";
 type Mode = "swipe" | "roulette";
 
-/**
- * Point d'entrée principal de l'application Michelin GO.
- * Gère le cycle de vie complet : Portail -> Configuration -> Modes.
- * 
- * Architecture "Single Page" pilotée par l'état 'view' pour une fluidité maximale.
- */
 export default function Home() {
+  const { data: session } = useSession();
   // États de navigation et de stockage des données
   const [view, setView] = useState<View>("portal");
   const [selectedMode, setSelectedMode] = useState<Mode | null>(null);
@@ -84,6 +81,36 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span className="text-michelin-red font-black text-2xl tracking-tighter">MICHELIN</span>
             <div className="bg-michelin-red text-white text-[10px] font-black px-2 py-0.5 rounded cursor-default">GO</div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {session ? (
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black uppercase text-michelin-black">{session.user?.name}</span>
+                  <button 
+                    onClick={() => signOut()} 
+                    className="text-[9px] font-bold uppercase text-michelin-gray hover:text-michelin-red transition-all flex items-center gap-1"
+                  >
+                    Déconnexion <LogOut size={8} />
+                  </button>
+                </div>
+                <Link 
+                  href="/profile"
+                  className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-michelin-red shadow-sm hover:bg-michelin-red hover:text-white hover:border-michelin-red transition-all"
+                >
+                  <User size={20} />
+                </Link>
+              </div>
+            ) : (
+              <Link 
+                href="/login" 
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 text-michelin-black rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-100 shadow-sm"
+              >
+                <User size={14} />
+                Connexion
+              </Link>
+            )}
           </div>
         </header>
       )}
@@ -182,7 +209,11 @@ export default function Home() {
 
         {/* Rendu dynamique des différentes vues de l'application */}
         {view === "onboarding" && (
-          <FlashSelector key="onboarding" onComplete={handleOnboardingComplete} />
+          <FlashSelector 
+            key="onboarding" 
+            onComplete={handleOnboardingComplete} 
+            onBack={() => setView("portal")}
+          />
         )}
 
         {view === "swipe" && userLocation && (

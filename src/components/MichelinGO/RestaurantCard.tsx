@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Star, Navigation, CheckCircle, Award } from "lucide-react";
+import { Star, Navigation, CheckCircle, Heart } from "lucide-react";
 import { Restaurant } from "@/data/restaurants";
 import { cn } from "@/lib/utils";
 
@@ -13,19 +13,15 @@ interface RestaurantCardProps {
   onAlreadyDone: () => void;
   footerAction?: React.ReactNode; // Slot optionnel pour injecter des actions contextuelles (ex: Relancer la roulette)
   isCompact?: boolean; // Mode réduit pour gagner de la place sur mobile ou Roulette
+  isFavorite?: boolean;
+  isVisited?: boolean;
+  onToggleFavorite?: () => void;
+  onToggleVisited?: () => void;
 }
 
 /**
  * Composant de carte atomique représentant un restaurant.
  * Utilisé à la fois dans le mode Swipe et Roulette.
- * 
- * @param {Restaurant} restaurant Données de l'établissement
- * @param {string} distance Distance formatée à afficher
- * @param {Function} onSwipeLeft Action de rejet
- * @param {Function} onSwipeRight Action de sélection
- * @param {Function} onAlreadyDone Action "Déjà fait"
- * @param {ReactNode} footerAction Action supplémentaire affichée en bas de carte
- * @param {boolean} isCompact Réduit la hauteur de l'image et les paddings
  */
 export default function RestaurantCard({
   restaurant,
@@ -34,7 +30,11 @@ export default function RestaurantCard({
   onSwipeRight,
   onAlreadyDone,
   footerAction,
-  isCompact = false
+  isCompact = false,
+  isFavorite = false,
+  isVisited = false,
+  onToggleFavorite,
+  onToggleVisited,
 }: RestaurantCardProps) {
   return (
     <div className="w-full h-full bg-white flex flex-col shadow-2xl overflow-hidden group rounded-[2.5rem] border border-gray-100">
@@ -43,7 +43,7 @@ export default function RestaurantCard({
       */}
       <div className={cn(
         "relative overflow-hidden transition-all duration-500 shrink-0",
-        isCompact ? "h-[40%] md:h-[45%]" : "h-[48%] md:h-[55%]"
+        isCompact ? "h-[35%] md:h-[45%]" : "h-[48%] md:h-[55%]"
       )}>
         <img
           src={restaurant.image}
@@ -53,15 +53,30 @@ export default function RestaurantCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
         {/* Badges Michelin */}
-        <div className="absolute top-4 left-4">
-          {restaurant.stars > 0 && (
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+          {restaurant.stars > 0 ? (
             <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-gray-100">
               <Star size={12} className="fill-michelin-red text-michelin-red" />
               <span className="text-michelin-black font-black text-[9px] uppercase tracking-wider">
                 {restaurant.stars} {restaurant.stars > 1 ? 'Étoiles' : 'Étoile'}
               </span>
             </div>
-          )}
+          ) : <div></div>}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite?.();
+            }}
+            className={cn(
+              "p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg border",
+              isFavorite
+                ? "bg-michelin-red text-white border-michelin-red"
+                : "bg-white/90 text-michelin-gray border-gray-100 hover:text-michelin-red"
+            )}
+          >
+            <Heart size={18} className={cn(isFavorite && "fill-current")} />
+          </button>
         </div>
 
         {/* Informations rapides (Prix & Distance restauré) */}
@@ -114,7 +129,7 @@ export default function RestaurantCard({
           ACTIONS : Bouton élégant mais compact 
         */}
         <div className={cn(
-          "flex flex-col w-full w-full",
+          "flex flex-col w-full",
           isCompact ? "gap-2.5 pt-2" : "gap-4 pt-5"
         )}>
           <div className="flex gap-2.5">
@@ -122,20 +137,27 @@ export default function RestaurantCard({
               onClick={onSwipeRight}
               className={cn(
                 "flex-1 bg-michelin-red text-white flex items-center justify-center rounded-2xl font-black text-xs uppercase tracking-[0.25em] hover:bg-michelin-red-dark transition-all shadow-xl shadow-michelin-red/30 active:scale-95 outline-none",
-                isCompact ? "h-14" : "h-14 md:h-16"
+                isCompact ? "h-12" : "h-14 md:h-16"
               )}
             >
               Réserver
             </button>
             <button
-              onClick={onAlreadyDone}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisited?.();
+                onAlreadyDone();
+              }}
               className={cn(
-                "rounded-2xl bg-gray-50 text-michelin-gray hover:bg-gray-100 hover:text-michelin-black transition-all border border-gray-100 flex items-center justify-center outline-none shrink-0",
-                isCompact ? "w-14 h-14" : "w-14 h-14 md:w-16 md:h-16"
+                "rounded-2xl transition-all border flex items-center justify-center outline-none shrink-0",
+                isCompact ? "w-12 h-12" : "w-14 h-14 md:w-16 md:h-16",
+                isVisited
+                  ? "bg-michelin-red text-white border-michelin-red"
+                  : "bg-gray-50 text-michelin-gray hover:bg-gray-100 hover:text-michelin-black border-gray-100"
               )}
-              title="Déjà fait / Passer"
+              title="Déjà fait"
             >
-              <CheckCircle size={isCompact ? 20 : 24} />
+              <CheckCircle size={isCompact ? 20 : 24} className={cn(isVisited && "fill-current")} />
             </button>
           </div>
 

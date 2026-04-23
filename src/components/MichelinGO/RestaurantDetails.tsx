@@ -76,10 +76,23 @@ export default function RestaurantDetails({
     }
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    try {
+      await fetch("/api/user/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restaurantId: restaurant.id,
+          date: bookingData.date,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save reservation:", err);
+    }
+
     setView("confirmation");
-    // In a real app, this would send data to a server
   };
 
   return (

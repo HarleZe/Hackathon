@@ -25,10 +25,13 @@ interface SwipeDeckProps {
  * @param {Function} onExit Callback pour quitter le mode
  * @param {Function} onConfirmBooking Callback de succès de réservation
  */
+import { useUserRestaurants } from "@/hooks/useUserRestaurants";
+
 export default function SwipeDeck({ restaurants: initialRestaurants, userLocation, onExit, onConfirmBooking }: SwipeDeckProps) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants);
   const [selectedDetails, setSelectedDetails] = useState<Restaurant | null>(null);
   const [lastDirection, setLastDirection] = useState<'left' | 'right' | null>(null);
+  const { favorites, visited, toggleFavorite, toggleVisited } = useUserRestaurants();
 
   /**
    * Calcul mémoïsé des distances pour optimiser les performances lors des animations de swipe.
@@ -151,6 +154,10 @@ export default function SwipeDeck({ restaurants: initialRestaurants, userLocatio
                   onSwipeLeft={handleSwipeLeft}
                   onSwipeRight={handleSwipeRight}
                   onAlreadyDone={handleAlreadyDone}
+                  isFavorite={favorites.includes(res.id)}
+                  isVisited={visited.includes(res.id)}
+                  onToggleFavorite={() => toggleFavorite(res.id)}
+                  onToggleVisited={() => toggleVisited(res.id)}
                 />
               );
             })}
@@ -183,7 +190,11 @@ function DraggableCard({
   direction,
   onSwipeLeft,
   onSwipeRight,
-  onAlreadyDone
+  onAlreadyDone,
+  isFavorite,
+  isVisited,
+  onToggleFavorite,
+  onToggleVisited,
 }: {
   restaurant: Restaurant;
   distance: string;
@@ -192,6 +203,10 @@ function DraggableCard({
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onAlreadyDone: () => void;
+  isFavorite?: boolean;
+  isVisited?: boolean;
+  onToggleFavorite?: () => void;
+  onToggleVisited?: () => void;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
@@ -231,6 +246,10 @@ function DraggableCard({
         onSwipeLeft={onSwipeLeft}
         onSwipeRight={onSwipeRight}
         onAlreadyDone={onAlreadyDone}
+        isFavorite={isFavorite}
+        isVisited={isVisited}
+        onToggleFavorite={onToggleFavorite}
+        onToggleVisited={onToggleVisited}
       />
     </motion.div>
   );

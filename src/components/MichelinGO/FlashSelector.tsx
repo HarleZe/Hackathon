@@ -15,6 +15,7 @@ interface UserPrefs {
 
 interface FlashSelectorProps {
   onComplete: (prefs: UserPrefs) => void;
+  onBack?: () => void;
 }
 
 /**
@@ -24,7 +25,7 @@ interface FlashSelectorProps {
  * 
  * @param {Function} onComplete Callback déclenché avec les préférences finales
  */
-export default function FlashSelector({ onComplete }: FlashSelectorProps) {
+export default function FlashSelector({ onComplete, onBack }: FlashSelectorProps) {
   const [step, setStep] = useState(1);
   const [showCityInput, setShowCityInput] = useState(false);
   const [showDistanceOptions, setShowDistanceOptions] = useState(false);
@@ -241,8 +242,10 @@ export default function FlashSelector({ onComplete }: FlashSelectorProps) {
                 if (step === 4 && (showDistanceOptions || showCityInput)) {
                   setShowDistanceOptions(false);
                   setShowCityInput(false);
-                } else {
-                  setStep(step > 1 ? step - 1 : 1);
+                } else if (step > 1) {
+                  setStep(step - 1);
+                } else if (onBack) {
+                  onBack();
                 }
               }}
               className="hover:text-michelin-red transition-colors flex items-center gap-2"

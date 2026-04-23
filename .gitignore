@@ -43,3 +43,11 @@ next-env.d.ts
 # data
 data/
 
+# database
+dev.db
+dev.db-journal
+
+# scratch & logs
+seed_output.txt
+footer.md
+*.log

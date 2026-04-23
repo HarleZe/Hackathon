@@ -1,17 +1,9 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { Restaurant } from '@/data/restaurants';
+import prisma from '@/lib/prisma';
 
 /**
  * Calcule la distance orthodromique entre deux points GPS en utilisant la formule de Haversine (en km).
  * Utilisé ici côté serveur pour filtrer les restaurants par rayon.
- * 
- * @param {number} lat1 Latitude A
- * @param {number} lon1 Longitude A
- * @param {number} lat2 Latitude B
- * @param {number} lon2 Longitude B
- * @returns {number} Distance en kilomètres
  */
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Rayon moyen de la Terre en km
@@ -28,17 +20,8 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 /**
- * Cache mémoire pour éviter de relire le fichier JSON (36Mo) à chaque requête HTTP.
- * Ce cache est partagé entre toutes les requêtes tant que l'instance du serveur tourne.
- */
-let cachedRestaurants: Restaurant[] | null = null;
-
-/**
  * Point d'entrée de l'API pour récupérer les recommandations de restaurants.
  * Supporte le filtrage par localisation (lat/lng/rayon) et par ville.
- * 
- * @param {Request} request Objet de requête Next.js
- * @returns {NextResponse} Liste des restaurants au format JSON
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -49,32 +32,39 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '40');
 
   try {
-    // 1. Initialisation du cache si vide (Lazy loading du JSON d'excellence)
-    if (!cachedRestaurants) {
-      const filePath = path.join(process.cwd(), 'src/data/restaurants_optimized.json');
-      const fileContents = fs.readFileSync(filePath, 'utf8');
-      cachedRestaurants = JSON.parse(fileContents);
-    }
-
-    if (!cachedRestaurants) return NextResponse.json([]);
-
-    let filtered = cachedRestaurants;
-
-    // 2. Filtrage par ville si le paramètre est fourni (ex: "Reims", "Rennes")
+    // 1. Récupération des restaurants via Prisma
+    let restaurants;
+    
     if (cityParam) {
-      const cityResults = cachedRestaurants.filter((r: Restaurant) => 
-        r.location.city.toLowerCase().includes(cityParam.toLowerCase())
-      );
-      if (cityResults.length > 0) {
-        filtered = cityResults;
-      }
+      restaurants = await prisma.restaurant.findMany({
+        where: {
+          city: {
+            contains: cityParam,
+          }
+        }
+      });
+    } else {
+      // Pour une recherche par rayon, on récupère tout ou une zone (boundingBox) pour filtrer ensuite en JS
+      // SQLite ne gère pas nativement les distances GPS complexes facilement sans extension.
+      // Avec 19k entrées, findMany() est très rapide.
+      restaurants = await prisma.restaurant.findMany();
     }
 
-    // 3. Calcul des distances et préparation des métadonnées
-    const restaurantsWithDistance = filtered.map((r: Restaurant) => ({
+    if (!restaurants) return NextResponse.json([]);
+
+    // 2. Calcul des distances et préparation des métadonnées
+    const restaurantsWithDistance = restaurants.map((r: any) => ({
       ...r,
-      distance: getDistance(lat, lng, r.location.lat, r.location.lng),
-      // Complétion des champs manquants par des valeurs par défaut
+      // On re-parse les champs JSON
+      vibes: JSON.parse(r.vibes || "[]"),
+      facilities: JSON.parse(r.facilities || "[]"),
+      location: {
+        lat: r.lat,
+        lng: r.lng,
+        address: r.address,
+        city: r.city,
+      },
+      distance: getDistance(lat, lng, r.lat, r.lng),
       weatherFit: r.weatherFit || "all",
       openingStatus: r.openingStatus || "open",
     }));

@@ -21,12 +21,15 @@ interface RouletteSelectorProps {
  * @param {Function} onExit Callback de fermeture du mode
  * @param {Function} onConfirmBooking Callback de succès de réservation
  */
+import { useUserRestaurants } from "@/hooks/useUserRestaurants";
+
 export default function RouletteSelector({ restaurants, userLocation, onExit, onConfirmBooking }: RouletteSelectorProps) {
   const [isSpinning, setIsSpinning] = useState(true);
   const [spinIndex, setSpinIndex] = useState(0);
   const [winner, setWinner] = useState<Restaurant | null>(null);
   const [selectedDetails, setSelectedDetails] = useState<Restaurant | null>(null);
   const spinInterval = useRef<NodeJS.Timeout | null>(null);
+  const { favorites, visited, toggleFavorite, toggleVisited } = useUserRestaurants();
 
   /**
    * Initialise et gère l'animation de la roulette.
@@ -158,10 +161,10 @@ export default function RouletteSelector({ restaurants, userLocation, onExit, on
               key="winner"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center w-full max-w-md"
+              className="flex flex-col items-center w-full max-w-[340px] md:max-w-[400px]"
             >
               {/* Carte du restaurant gagnant - Mode Compact pour accommoder le bouton Relancer */}
-              <div className="w-full max-w-[300px] md:max-w-[360px] aspect-[9/16] md:aspect-auto md:h-[600px] shadow-2xl rounded-[2.5rem] flex items-center justify-center transition-all bg-white overflow-hidden">
+              <div className="w-full aspect-[9/16] md:h-[650px] md:aspect-auto shadow-2xl rounded-[2.5rem] flex items-center justify-center transition-all bg-white overflow-hidden border border-gray-100">
                 <RestaurantCard
                   restaurant={winner}
                   distance={getFormattedDistance(winner)}
@@ -169,6 +172,10 @@ export default function RouletteSelector({ restaurants, userLocation, onExit, on
                   onSwipeLeft={() => { }}
                   onSwipeRight={() => setSelectedDetails(winner)}
                   onAlreadyDone={() => startSpin()}
+                  isFavorite={favorites.includes(winner.id)}
+                  isVisited={visited.includes(winner.id)}
+                  onToggleFavorite={() => toggleFavorite(winner.id)}
+                  onToggleVisited={() => toggleVisited(winner.id)}
                   footerAction={
                     /* Bouton de relance intégré en bas de la carte */
                     <button
